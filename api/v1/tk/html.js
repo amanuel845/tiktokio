@@ -1,4 +1,13 @@
 export default async function handler(req, res) {
+  // CORS preflight
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -15,9 +24,13 @@ export default async function handler(req, res) {
     });
 
     const text = await upstream.text();
-    res.setHeader("Content-Type", upstream.headers.get("content-type") || "text/html");
-    res.status(upstream.status).send(text);
+
+    res
+      .status(upstream.status)
+      .setHeader("Content-Type", upstream.headers.get("content-type") || "text/html")
+      .send(text);
   } catch (err) {
+    console.error("Proxy error:", err);
     res.status(502).json({ error: "Upstream request failed" });
   } finally {
     clearTimeout(timeoutId);
